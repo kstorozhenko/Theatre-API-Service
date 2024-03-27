@@ -30,7 +30,8 @@ from theatre.serializers import (
     PerformanceListSerializer,
     PerformanceDetailSerializer,
     ReservationSerializer,
-    ReservationListSerializer
+    ReservationListSerializer,
+    PlayImageSerializer
 )
 
 
@@ -106,6 +107,10 @@ class PlayViewSet(
 
         elif self.action == "retrieve":
             return PlayDetailSerializer
+
+        elif self.action == "upload_image":
+            return PlayImageSerializer
+
 
         else:
             return PlaySerializer
@@ -238,5 +243,3 @@ class ReservationViewSet(
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-

@@ -31,6 +31,12 @@ class TheatreHallSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "rows", "seats_in_row", "capacity")
 
 
+class PlayImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Play
+        fields = ("id", "image")
+
+
 class PlaySerializer(serializers.ModelSerializer):
     class Meta:
         model = Play
@@ -40,7 +46,6 @@ class PlaySerializer(serializers.ModelSerializer):
             "description",
             "genres",
             "actors",
-            "image"
         )
 
 
