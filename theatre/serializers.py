@@ -39,7 +39,8 @@ class PlaySerializer(serializers.ModelSerializer):
             "title",
             "description",
             "genres",
-            "actors"
+            "actors",
+            "image"
         )
 
 
@@ -63,6 +64,7 @@ class PlayListSerializer(PlaySerializer):
             "description",
             "genres",
             "actors",
+            "image"
         )
 
 
@@ -78,6 +80,7 @@ class PlayDetailSerializer(PlaySerializer):
             "description",
             "genres",
             "actors",
+            "image"
         )
 
 
