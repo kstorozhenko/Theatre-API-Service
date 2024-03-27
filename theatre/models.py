@@ -20,6 +20,9 @@ class TheatreHall(models.Model):
 class Genre(models.Model):
     name = models.CharField(max_length=100)
 
+    def __str__(self):
+        return self.name
+
 
 class Actor(models.Model):
     first_name = models.CharField(max_length=80)
@@ -55,7 +58,7 @@ class Perfomance(models.Model):
         ordering = ["-show_time"]
 
     def __str__(self):
-        return self.play.title + " " + str(self.show_time)
+        return f"Title: {self.play.title} perfomance date: {str(self.show_time)} hall: {str(self.theatre_hall)}"
 
 
 class Reservation(models.Model):
