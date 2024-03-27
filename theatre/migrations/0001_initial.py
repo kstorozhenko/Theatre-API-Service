@@ -115,7 +115,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="Perfomance",
+            name="Performance",
             fields=[
                 (
                     "id",
