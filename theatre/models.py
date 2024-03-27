@@ -82,7 +82,7 @@ class Reservation(models.Model):
     )
 
     def __str__(self):
-        return str(self.created_at)
+        return str(self.created_at) + " " + str(self.user)
 
     class Meta:
         ordering = ["-created_at"]
@@ -141,7 +141,7 @@ class Ticket(models.Model):
 
     def __str__(self):
         return (
-            f"{str(self.performance)} (row: {self.row}, seat: {self})"
+            f"{str(self.performance)} (row: {self.row}, seat: {self.seat})"
         )
 
     class Meta:
