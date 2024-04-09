@@ -3,6 +3,7 @@ import uuid
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.utils.text import slugify
 
 from app import settings
@@ -51,8 +52,8 @@ def play_image_file_path(instance, filename):
 class Play(models.Model):
     title = models.CharField(max_length=100)
     description = models.TextField()
-    genres = models.ManyToManyField(Genre, blank=True)
-    actors = models.ManyToManyField(Actor, blank=True)
+    genres = models.ManyToManyField(Genre, blank=True, related_name="plays")
+    actors = models.ManyToManyField(Actor, blank=True, related_name="plays")
     image = models.ImageField(null=True, blank=True, upload_to=play_image_file_path)
 
     class Meta:
@@ -64,8 +65,16 @@ class Play(models.Model):
 
 class Performance(models.Model):
     show_time = models.DateTimeField()
-    theatre_hall = models.ForeignKey(TheatreHall, on_delete=models.CASCADE)
-    play = models.ForeignKey(Play, on_delete=models.CASCADE)
+    theatre_hall = models.ForeignKey(
+        TheatreHall,
+        on_delete=models.CASCADE,
+        related_name="performances"
+    )
+    play = models.ForeignKey(
+        Play,
+        on_delete=models.CASCADE,
+        related_name="performances"
+    )
 
     class Meta:
         ordering = ["-show_time"]
@@ -76,7 +85,11 @@ class Performance(models.Model):
 
 class Reservation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reservations"
+    )
 
     def __str__(self):
         return str(self.created_at) + " " + str(self.user)
@@ -87,7 +100,9 @@ class Reservation(models.Model):
 
 class Ticket(models.Model):
     performance = models.ForeignKey(
-        Performance, on_delete=models.CASCADE, related_name="tickets"
+        Performance,
+        on_delete=models.CASCADE,
+        related_name="tickets"
     )
     reservation = models.ForeignKey(
         Reservation,
@@ -134,5 +149,10 @@ class Ticket(models.Model):
         return f"{str(self.performance)} (row: {self.row}, seat: {self.seat})"
 
     class Meta:
-        unique_together = ("performance", "row", "seat")
+        constraints = [
+            UniqueConstraint(
+                fields=["performance", "row", "seat"],
+                name="unique_ticket"
+            )
+        ]
         ordering = ["row", "seat"]

@@ -5,13 +5,12 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
 from theatre.models import Genre, Actor, TheatreHall, Play, Performance, Reservation
-from theatre.permissions import IsAdminOrIfAuthenticatedReadOnly
+from theatre.pagination import ReservationPagination
 from theatre.serializers import (
     GenreSerializer,
     ActorSerializer,
@@ -28,24 +27,31 @@ from theatre.serializers import (
 )
 
 
-class GenreViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, GenericViewSet):
+class GenreViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet
+):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
-class ActorViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, GenericViewSet):
+class ActorViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet
+):
     queryset = Actor.objects.all()
     serializer_class = ActorSerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 class TheatreHallViewSet(
-    mixins.CreateModelMixin, mixins.ListModelMixin, GenericViewSet
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    GenericViewSet
 ):
     queryset = TheatreHall.objects.all()
     serializer_class = TheatreHallSerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 class PlayViewSet(
@@ -56,7 +62,11 @@ class PlayViewSet(
 ):
     queryset = Play.objects.prefetch_related("genres", "actors")
     serializer_class = PlaySerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
+    serializer_action_classes = {
+        "list": PlayListSerializer,
+        "retrieve": PlayDetailSerializer,
+        "upload_image": PlayImageSerializer
+    }
 
     @staticmethod
     def _params_to_ints(qs):
@@ -83,19 +93,6 @@ class PlayViewSet(
             queryset = queryset.filter(actors__id__in=actors_ids)
 
         return queryset.distinct()
-
-    def get_serializer_class(self):
-        if self.action == "list":
-            return PlayListSerializer
-
-        elif self.action == "retrieve":
-            return PlayDetailSerializer
-
-        elif self.action == "upload_image":
-            return PlayImageSerializer
-
-        else:
-            return PlaySerializer
 
     @action(
         methods=["POST"],
@@ -136,10 +133,13 @@ class PlayViewSet(
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    def get_serializer_class(self):
+        return self.serializer_action_classes.get(self.action, self.serializer_class)
+
 
 class PerformanceViewSet(viewsets.ModelViewSet):
     queryset = (
-        Performance.objects.all()
+        Performance.objects
         .select_related("play", "theatre_hall")
         .annotate(
             tickets_available=(
@@ -149,7 +149,10 @@ class PerformanceViewSet(viewsets.ModelViewSet):
         )
     )
     serializer_class = PerformanceSerializer
-    permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
+    serializer_action_classes = {
+        "list": PerformanceListSerializer,
+        "retrieve": PerformanceDetailSerializer,
+    }
 
     def get_queryset(self):
         date = self.request.query_params.get("date")
@@ -167,13 +170,7 @@ class PerformanceViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_serializer_class(self):
-        if self.action == "list":
-            return PerformanceListSerializer
-
-        if self.action == "retrieve":
-            return PerformanceDetailSerializer
-
-        return PerformanceSerializer
+        return self.serializer_action_classes.get(self.action, self.serializer_class)
 
     @extend_schema(
         parameters=[
@@ -195,18 +192,18 @@ class PerformanceViewSet(viewsets.ModelViewSet):
         return super().list(request, *args, **kwargs)
 
 
-class ReservationPagination(PageNumberPagination):
-    page_size = 10
-    max_page_size = 100
-
-
 class ReservationViewSet(
-    mixins.ListModelMixin, mixins.CreateModelMixin, GenericViewSet
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    GenericViewSet
 ):
     queryset = Performance.objects.prefetch_related(
         "tickets__performance__play", "tickets__performance__theatre_hall"
     )
     serializer_class = ReservationSerializer
+    serializer_action_classes = {
+        "list": ReservationListSerializer,
+    }
     pagination_class = ReservationPagination
     permission_classes = (IsAuthenticated,)
 
@@ -214,10 +211,7 @@ class ReservationViewSet(
         return Reservation.objects.filter(user=self.request.user)
 
     def get_serializer_class(self):
-        if self.action == "list":
-            return ReservationListSerializer
-
-        return ReservationSerializer
+        return self.serializer_action_classes.get(self.action, self.serializer_class)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
